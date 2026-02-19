@@ -1,100 +1,89 @@
 const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
-const FormData = require("form-data");
+
+const mahmud = async () => {
+        const base = await axios.get("https://raw.githubusercontent.com/mahmudx7/HINATA/main/baseApiUrl.json");
+        return base.data.mahmud;
+};
 
 module.exports = {
-  config: {
-    name: "4k",
-    version: "1.5",
-    author: "Arafat",
-    role: 0,
-    category: "image",
-    shortDescription: { en: "Enhance image to 4K" },
-    longDescription: { en: "Reply to an image to get a 4K enhanced version" },
-    guide: { en: "Reply to an image with: 4k" }
-  },
+        config: {
+                name: "4k",
+                aliases: ["hd", "upscale"],
+                version: "1.7",
+                author: "MahMUD",
+                countDown: 10,
+                role: 0,
+                description: {
+                        bn: "AI এর মাধ্যমে ছবির কোয়ালিটি 4K বা HD করুন",
+                        en: "Enhance or restore image quality to 4K using AI",
+                        vi: "Nâng cao chất lượng hình ảnh lên 4K bằng AI"
+                },
+                category: "tools",
+                guide: {
+                        bn: '   {pn} [url]: ছবির লিংকের মাধ্যমে HD করুন\n   অথবা ছবির রিপ্লাইয়ে {pn} লিখুন',
+                        en: '   {pn} [url]: Upscale image via URL\n   Or reply to an image with {pn}',
+                        vi: '   {pn} [url]: Nâng cấp ảnh qua URL\n   Hoặc phản hồi ảnh bằng {pn}'
+                }
+        },
 
-  onStart: async function ({ event, message }) {
-    const startTime = Date.now();
+        langs: {
+                bn: {
+                        noImage: "• বেবি, একটি ছবিতে রিপ্লাই দাও অথবা ছবির লিংক দাও! 😘",
+                        wait: "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝟒𝐤 𝐢𝐦𝐚𝐠𝐞...𝐰𝐚𝐢𝐭 𝐛𝐚𝐛𝐲 😘",
+                        success: "✅ | 𝐇𝐞𝐫𝐞'𝐬 𝐲𝐨𝐮𝐫 𝟒𝐤 𝐢𝐦𝐚𝐠𝐞 𝐛𝐚𝐛𝐲",
+                        error: "× সমস্যা হয়েছে: %1। প্রয়োজনে Contact MahMUD।"
+                },
+                en: {
+                        noImage: "• Baby, please reply to an image or provide a link! 😘",
+                        wait: "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝟒𝐤 𝐢𝐦𝐚𝐠𝐞...𝐰𝐚𝐢𝐭 𝐛𝐚𝐛𝐲 😘",
+                        success: "✅ | 𝐇𝐞𝐫𝐞'𝐬 𝐲𝐨𝐮𝐫 𝟒𝐤 𝐢𝐦𝐚𝐠𝐞 𝐛𝐚𝐛𝐲",
+                        error: "× API error: %1. Contact MahMUD for help."
+                },
+                vi: {
+                        noImage: "• Cưng ơi, hãy phản hồi một bức ảnh hoặc gửi link! 😘",
+                        wait: "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝟒𝐤 𝐢𝐦𝐚𝐠𝐞...𝐰𝐚𝐢𝐭 𝐛𝐚𝐛𝐲 😘",
+                        success: "✅ | 𝐇𝐞𝐫𝐞'𝐬 𝐲𝐨𝐮𝐫 𝟒𝐤 𝐢𝐦𝐚𝐠𝐞 𝐛𝐚𝐛𝐲",
+                        error: "× Lỗi: %1. Liên hệ MahMUD để được hỗ trợ."
+                }
+        },
 
-    try {
-      if (
-        !event.messageReply ||
-        !event.messageReply.attachments ||
-        event.messageReply.attachments[0].type !== "photo"
-      ) {
-        return message.reply(
-          "❌ Please reply to an image and type: 4k"
-        );
-      }
+        onStart: async function ({ api, message, args, event, getLang }) {
+                const authorName = String.fromCharCode(77, 97, 104, 77, 85, 68);
+                if (this.config.author !== authorName) {
+                        return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
+                }
 
-      const imageUrl = event.messageReply.attachments[0].url;
+                let imgUrl;
+                if (event.messageReply?.attachments?.[0]?.type === "photo") {
+                        imgUrl = event.messageReply.attachments[0].url;
+                } else if (args[0]) {
+                        imgUrl = args.join(" ");
+                }
 
-      const cacheDir = path.join(__dirname, "..", "..", "cache");
-      if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
+                if (!imgUrl) return api.sendMessage(getLang("noImage"), event.threadID, event.messageID);
 
-      const imgPath = path.join(
-        cacheDir,
-        `4k_${Date.now()}.jpg`
-      );
+                const waitMsg = await api.sendMessage(getLang("wait"), event.threadID, event.messageID);
+                api.setMessageReaction("😘", event.messageID, () => {}, true);
 
-      const imgRes = await axios.get(imageUrl, {
-        responseType: "stream",
-        timeout: 20000
-      });
+                try {
+                        const baseUrl = await mahmud();
+                        const apiUrl = `${baseUrl}/api/hd/mahmud?imgUrl=${encodeURIComponent(imgUrl)}`;
+                        
+                        const res = await axios.get(apiUrl, { responseType: "stream" });
 
-      await new Promise((resolve, reject) => {
-        const writer = fs.createWriteStream(imgPath);
-        imgRes.data.pipe(writer);
-        writer.on("finish", resolve);
-        writer.on("error", reject);
-      });
+                        if (waitMsg?.messageID) api.unsendMessage(waitMsg.messageID);
+                        api.setMessageReaction("🪽", event.messageID, () => {}, true);
 
-      const { data } = await axios.get(
-        "https://raw.githubusercontent.com/Arafat-Core/Arafat-Temp/refs/heads/main/4k.json",
-        { timeout: 10000 }
-      );
+                        return api.sendMessage({
+                                body: getLang("success"),
+                                attachment: res.data
+                        }, event.threadID, event.messageID);
 
-      const API_BASE = data.api;
-
-      const form = new FormData();
-      form.append("image", fs.createReadStream(imgPath));
-
-      const apiRes = await axios.post(
-        `${API_BASE}/Arafat-4k`,
-        form,
-        {
-          headers: form.getHeaders(),
-          timeout: 60000
+                } catch (err) {
+                        console.error("Error in 4k command:", err);
+                        if (waitMsg?.messageID) api.unsendMessage(waitMsg.messageID);
+                        api.setMessageReaction("❌", event.messageID, () => {}, true);
+                        return api.sendMessage(getLang("error", err.message), event.threadID, event.messageID);
+                }
         }
-      );
-
-      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
-
-      if (!apiRes.data || !apiRes.data.photo_4k_url) {
-        return message.reply("❌ Failed to generate 4K image");
-      }
-
-      const timeTaken = ((Date.now() - startTime) / 1000).toFixed(2);
-
-      return message.reply({
-        body:
-          "✨ 𝟒𝐊 𝐈𝐦𝐚𝐠𝐞 𝐆𝐞𝐧𝐞𝐫𝐚𝐭𝐞𝐝\n" +
-          `🚀 𝐓𝐢𝐦𝐞 : ${timeTaken}s`,
-        attachment: await axios
-          .get(apiRes.data.photo_4k_url, {
-            responseType: "stream",
-            timeout: 30000
-          })
-          .then(r => r.data)
-      });
-
-    } catch (err) {
-      console.error(err);
-      return message.reply(
-        "❌ Server error. Please try again later."
-      );
-    }
-  }
 };

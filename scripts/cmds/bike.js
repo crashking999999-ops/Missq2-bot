@@ -52,7 +52,7 @@ module.exports = {
 
       writer.on("finish", () => {
         api.sendMessage({
-          body: "𝐇𝐞𝐫𝐞'𝐬 𝐲𝐨𝐮𝐫 𝐁𝐢𝐤𝐞 𝐯𝐢𝐝𝐞𝐨 <😘",
+          body: "🎬 𝐇𝐞𝐫𝐞'𝐬 𝐲𝐨𝐮𝐫 𝐁𝐢𝐤𝐞 𝐯𝐢𝐝𝐞𝐨 <⚔️",
           attachment: fs.createReadStream(filePath)
         }, event.threadID, () => fs.unlinkSync(filePath), event.messageID);
       });

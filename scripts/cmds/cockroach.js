@@ -9,39 +9,39 @@ const baseApiUrl = async () => {
 
 module.exports = {
         config: {
-                name: "murgi",
-                aliases: ["chicken", "মুরগি"],
+                name: "cockroach",
+                aliases: ["cock", "তেলাপোকা"],
                 version: "1.7",
                 author: "MahMUD",
                 countDown: 10,
                 role: 0,
                 description: {
-                        bn: "কাউকে মুরগি বানিয়ে মজার ছবি তৈরি করুন",
-                        en: "Create a funny murgi (hen) image of someone",
-                        vi: "Tạo một bức ảnh gà vui nhộn về ai đó"
+                        bn: "কাউকে তেলাপোকা বানিয়ে মজার ছবি তৈরি করুন",
+                        en: "Create a funny cockroach image of someone",
+                        vi: "Tạo một bức ảnh gián vui nhộn về ai đó"
                 },
                 category: "fun",
                 guide: {
-                        bn: '   {pn} <@tag/reply/UID>: কাউকে মুরগি বানাতে ট্যাগ করুন',
-                        en: '   {pn} <@tag/reply/UID>: Tag/Reply to make someone murgi',
-                        vi: '   {pn} <@tag/reply/UID>: Gắn thẻ để biến ai đó thành gà'
+                        bn: '   {pn} <@tag/reply/UID>: কাউকে তেলাপোকা বানাতে ট্যাগ করুন',
+                        en: '   {pn} <@tag/reply/UID>: Tag/Reply to make someone cockroach',
+                        vi: '   {pn} <@tag/reply/UID>: Gắn thẻ để biến ai đó thành gián'
                 }
         },
 
         langs: {
                 bn: {
-                        noTarget: "× বেবি, কাউকে মেনশন দাও, রিপ্লাই করো অথবা UID দাও! 🐓",
-                        success: "এই নাও তোমার মুরগি ছবি বেবি! 🐸",
+                        noTarget: "× বেবি, কাউকে মেনশন দাও, রিপ্লাই করো অথবা UID দাও! 🪳",
+                        success: "এই নাও তোমার তেলাপোকা ছবি বেবি! 🐸",
                         error: "× সমস্যা হয়েছে: %1। প্রয়োজনে Contact MahMUD।"
                 },
                 en: {
-                        noTarget: "× Baby, mention, reply, or provide UID of the target! 🐓",
-                        success: "Here's your murgi image baby! 🐸",
+                        noTarget: "× Baby, mention, reply, or provide UID of the target! 🪳",
+                        success: "Here's your cockroach image baby! 🐸",
                         error: "× API error: %1. Contact MahMUD for help."
                 },
                 vi: {
-                        noTarget: "× Cưng ơi, hãy gắn thẻ, phản hồi hoặc cung cấp UID! 🐓",
-                        success: "Ảnh con gà của cưng đây! 🐸",
+                        noTarget: "× Cưng ơi, hãy gắn thẻ, phản hồi hoặc cung cấp UID! 🪳",
+                        success: "Ảnh con gián của cưng đây! 🐸",
                         error: "× Lỗi: %1. Liên hệ MahMUD để hỗ trợ."
                 }
         },
@@ -67,13 +67,13 @@ module.exports = {
 
                 const cacheDir = path.join(__dirname, "cache");
                 if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
-                const filePath = path.join(cacheDir, `murgi_${id}.png`);
+                const filePath = path.join(cacheDir, `cockroach_${id}.png`);
 
                 try {
-                        api.setMessageReaction("🐓", event.messageID, () => {}, true);
+                        api.setMessageReaction("🪳", event.messageID, () => {}, true);
                         
                         const baseUrl = await baseApiUrl();
-                        const url = `${baseUrl}/api/murgi?user=${id}`;
+                        const url = `${baseUrl}/api/cockroach?user=${id}`;
 
                         const response = await axios.get(url, { responseType: "arraybuffer" });
                         fs.writeFileSync(filePath, Buffer.from(response.data));
@@ -86,7 +86,7 @@ module.exports = {
                         });
 
                 } catch (err) {
-                        console.error("Murgi Error:", err);
+                        console.error("Cockroach Error:", err);
                         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
                         return message.reply(getLang("error", err.message));
                 }

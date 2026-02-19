@@ -1,83 +1,89 @@
-const Jimp = require("jimp");
 const axios = require("axios");
-const fs = require("fs-extra");
+const fs = require("fs");
 const path = require("path");
 
+const baseApiUrl = async () => {
+  const base = await axios.get("https://raw.githubusercontent.com/mahmudx7/HINATA/main/baseApiUrl.json");
+  return base.data.mahmud;
+};
+
 module.exports = {
-	config: {
-		name: "slap",
-		version: "1.0",
-		author: "Arafat",
-		role: 0,
-		shortDescription: "Slap someone",
-		longDescription: "Custom batslap with personal template",
-		category: "fun",
-		guide: { en: "{pn} @mention" }
-	},
+        config: {
+                name: "slap",
+                aliases: ["thappor"],
+                version: "1.7",
+                author: "MahMUD",
+                countDown: 10,
+                role: 0,
+                description: {
+                        bn: "কাউকে থাপ্পড় মারার ছবি তৈরি করুন",
+                        en: "Create a slap image of someone"
+                },
+                category: "fun",
+                guide: {
+                        bn: '   {pn} <@tag>: কাউকে ট্যাগ করে থাপ্পড় মারুন'
+                                + '\n   {pn} <uid>: UID এর মাধ্যমে থাপ্পড় মারুন'
+                                + '\n   (অথবা কারো মেসেজে রিপ্লাই দিয়ে এটি ব্যবহার করুন)',
+                        en: '   {pn} <@tag>: Slap a tagged user'
+                                + '\n   {pn} <uid>: Slap by UID'
+                                + '\n   (Or reply to someone\'s message)'
+                }
+        },
 
-	langs: {
-		en: { noTag: "You must mention someone" }
-	},
+        langs: {
+                bn: {
+                        noTarget: "× বেবি, কাকে থাপ্পড় মারবে তাকে মেনশন দাও বা রিপ্লাই করো!",
+                        success: "এই নাও থাপ্পড়! একদম গাল লাল হয়ে গেছে 💥",
+                        error: "× থাপ্পড় মারতে গিয়ে সমস্যা হয়েছে: %1। প্রয়োজনে Contact MahMUD।"
+                },
+                en: {
+                        noTarget: "× Baby, mention or reply to someone to slap!",
+                        success: "Here's a slap! 💥",
+                        error: "× Failed to slap: %1. Contact MahMUD for help."
+                }
+        },
 
-	onStart: async function ({ event, message, getLang }) {
-		const uid1 = event.senderID;
-		const uid2 = Object.keys(event.mentions || {})[0];
-		if (!uid2) return message.reply(getLang("noTag"));
+        onStart: async function ({ api, message, args, event, getLang }) {
+                const authorName = String.fromCharCode(77, 97, 104, 77, 85, 68);
+                if (this.config.author !== authorName) {
+                        return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
+                }
 
-		let img1Path, img2Path, outPath;
+                const { senderID, messageReply, mentions } = event;
+                let id2;
 
-		try {
-			// TMP (auto)
-			const tmpDir = path.join(__dirname, "tmp");
-			await fs.ensureDir(tmpDir);
+                if (messageReply) {
+                        id2 = messageReply.senderID;
+                } else if (Object.keys(mentions).length > 0) {
+                        id2 = Object.keys(mentions)[0];
+                } else if (args[0] && !isNaN(args[0])) {
+                        id2 = args[0];
+                }
 
-			img1Path = path.join(tmpDir, `${uid1}.png`);
-			img2Path = path.join(tmpDir, `${uid2}.png`);
-			outPath  = path.join(tmpDir, `${uid1}_${uid2}_slap.png`);
+                if (!id2) return message.reply(getLang("noTarget"));
 
-			// Download FB avatars
-			const token = "6628568379|c1e620fa708a1d5696fb991c1bde5662";
-			const url1 = `https://graph.facebook.com/${uid1}/picture?width=720&height=720&access_token=${token}`;
-			const url2 = `https://graph.facebook.com/${uid2}/picture?width=720&height=720&access_token=${token}`;
+                try {
+                        const baseUrl = await baseApiUrl();
+                        const url = `${baseUrl}/api/dig?type=slap&user=${senderID}&user2=${id2}`;
 
-			const a1 = await axios.get(url1, { responseType: "arraybuffer", timeout: 15000 });
-			const a2 = await axios.get(url2, { responseType: "arraybuffer", timeout: 15000 });
-			await fs.writeFile(img1Path, a1.data);
-			await fs.writeFile(img2Path, a2.data);
+                        const response = await axios.get(url, { responseType: "arraybuffer" });
+                        const cachePath = path.join(__dirname, "cache", `slap_${id2}.png`);
+                        
+                        if (!fs.existsSync(path.join(__dirname, "cache"))) {
+                                fs.mkdirSync(path.join(__dirname, "cache"));
+                        }
 
-			// Load template + edit
-			const base = await Jimp.read(
-				"https://raw.githubusercontent.com/Arafat-Core/Arafat-Temp/refs/heads/main/batslap.png"
-			);
-			const av1 = await Jimp.read(img1Path);
-			const av2 = await Jimp.read(img2Path);
+                        fs.writeFileSync(cachePath, Buffer.from(response.data));
 
-			av1.circle(); av2.circle();
-			base.resize(1000, 500);
-			av1.resize(220, 220);
-			av2.resize(200, 200);
+                        await message.reply({
+                                body: getLang("success"),
+                                attachment: fs.createReadStream(cachePath)
+                        });
 
-			// Positions (customizable)
-			base.composite(av2, 580, 260); // slapped
-			base.composite(av1, 350, 70);  // slapper
-
-			await base.writeAsync(outPath);
-
-			// Send + CASE CLEAR
-			message.reply(
-				{ body: "Bópppp 😵‍💫😵", attachment: fs.createReadStream(outPath) },
-				() => {
-					fs.unlink(img1Path).catch(() => {});
-					fs.unlink(img2Path).catch(() => {});
-					fs.unlink(outPath).catch(() => {});
-				}
-			);
-		} catch (err) {
-			console.error(err);
-			message.reply("❌ Slap generate failed");
-		} finally {
-			// hard clear references
-			img1Path = img2Path = outPath = null;
-		}
-	}
+                        fs.unlinkSync(cachePath);
+                } catch (err) {
+                        console.error("Error in slap command:", err);
+                        return message.reply(getLang("error", err.message));
+                }
+        }
 };
